@@ -5,12 +5,16 @@
 // the animation interesting, and arrow keys move the camera for even more
 // fun.
 
+#define PI 3.14159265358979323846
+
 #ifdef __APPLE_CC__
 #include <GLUT/glut.h>
 #else
 #include <GL/glut.h>
 #endif
+
 #include <cmath>
+
 
 // Colors
 GLfloat WHITE[] = {1, 1, 1};
@@ -85,7 +89,7 @@ public:
   void create() {
     displayListId = glGenLists(1);
     glNewList(displayListId, GL_COMPILE);
-    GLfloat lightPosition[] = {4, 3, 7, 1}; // NOTE change this if needed
+    GLfloat lightPosition[] = {5, 6, 7, 1}; // NOTE change this if needed
     glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
     glBegin(GL_QUADS);
     glNormal3d(0, 1, 0);
@@ -124,13 +128,20 @@ class Pendulum {
   // int direction;
 public:
 
+  double angle; // from down
+
   Pendulum(GLfloat* c, double len, double x_i, double y_i, double z_i): color(c), length(len), x(x_i), y(y_i), z(z_i) {}
+
 
   void update() {
     glPushMatrix();
     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, color);
+
     glTranslated(x, y, z);
+    glRotated(45.0,0.0,0.0,1.0);
     glScaled(0.05,(length),0.05);
+    // glRotated(10.0,1.0,0.0,0.0);
+
     glutSolidCube(1.0);
     glPopMatrix();
     //
@@ -138,6 +149,44 @@ public:
     glTranslated(x, y-(length/2), z); // initial position
     glutSolidSphere(0.1, 30, 30);
     glPopMatrix();
+  }
+
+  void rotate(double theta){
+    //
+    // Rotate the arm
+    //
+    glPushMatrix(); // begin arm matrix
+    glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, color);
+    // go to main point
+    glTranslated(x, y, z);
+    // for rotation...
+    glTranslated(0.0, length/2, 0.0);
+    // rotate at translation point, around the z-vector
+    glRotated(theta,0.0,0.0,1.0);
+    // now go back...
+    glTranslated(0.0, -length/2, 0.0);
+    // scale rect.p. to correct sizeof
+    glScaled(0.05,(length),0.05);
+    // generate the cube
+    glutSolidCube(1.0);
+    glPopMatrix(); // end arm matrix
+
+    //
+    // Rotate the ball
+    //
+    glPushMatrix(); // begin ball matrix
+    glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, color);
+
+    glTranslated(x, y-(length/2), z); // initial position
+    // for rotation
+    glTranslated(0.0, length, 0.0);
+    // rotate at translation point, around the z-vector
+    glRotated(theta,0.0,0.0,1.0);
+    glTranslated(0.0, -length, 0.0);
+
+    glutSolidSphere(0.1, 30, 30);
+
+    glPopMatrix(); // end ball matrix
   }
 
 };
@@ -149,6 +198,10 @@ Camera camera;
 
 // attempt at doing a pole like thing
 Pendulum pendulum(GREEN, 2.0, 4.0, 2.0, 4.0);
+// pendulum.angle = 0.0;
+double temp = 0.0;
+
+// pendulum.setAngle(0.0d);
 
 Ball balls[] = {
   Ball(1, GREEN, 7, 6, 1),
@@ -182,7 +235,9 @@ void display() {
   // for (int i = 0; i < sizeof balls / sizeof(Ball); i++) {
   //   balls[i].update();
   // }
-  pendulum.update();
+  // pendulum.update();
+  temp += 0.1;
+  pendulum.rotate(temp);
   glFlush();
   glutSwapBuffers();
 }
@@ -220,7 +275,7 @@ int main(int argc, char** argv) {
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
   glutInitWindowPosition(80, 80);
   glutInitWindowSize(800, 600);
-  glutCreateWindow("Bouncing Balls");
+  glutCreateWindow("Cart Pole Simulation");
   glutDisplayFunc(display);
   glutReshapeFunc(reshape);
   glutSpecialFunc(special);
