@@ -19,6 +19,7 @@
 // Colors
 GLfloat WHITE[] = {1, 1, 1};
 GLfloat RED[] = {1, 0, 0};
+GLfloat BLUE[] = {0, 0, 1};
 GLfloat GREEN[] = {0, 1, 0};
 GLfloat MAGENTA[] = {1, 0, 1};
 
@@ -30,53 +31,21 @@ class Camera {
   double dTheta;     // increment in theta for swinging the camera around
   double dy;         // increment in y for moving the camera up/down
 public:
-  Camera(): theta(0), y(3), dTheta(0.04), dy(0.2) {}
-  double getX() {return 5 * cos(theta);}
+  Camera(): theta(-1), y(3), dTheta(0.04), dy(0.2) {}
+  double getX() {return 6 * cos(theta);}
   double getY() {return y;}
-  double getZ() {return 5 * sin(theta);}
+  double getZ() {return 6 * sin(theta);}
   void moveRight() {theta += dTheta;}
   void moveLeft() {theta -= dTheta;}
   void moveUp() {y += dy;}
   void moveDown() {if (y > dy) y -= dy;}
 };
 
-// A ball.  A ball has a radius, a color, and bounces up and down between
-// a maximum height and the xz plane.  Therefore its x and z coordinates
-// are fixed.  It uses a lame bouncing algorithm, simply moving up or
-// down by 0.05 units at each frame.
-class Ball {
-  double radius;
-  GLfloat* color;
-  double maximumHeight;
-  double x;
-  double y;
-  double z;
-  int direction;
-public:
-  Ball(double r, GLfloat* c, double h, double x, double z):
-      radius(r), color(c), maximumHeight(h), direction(-1),
-      y(h), x(x), z(z) {
-  }
-  void update() {
-    y += direction * 0.05;
-    if (y > maximumHeight) {
-      y = maximumHeight; direction = -1;
-    } else if (y < radius) {
-      y = radius; direction = 1;
-    }
-    glPushMatrix();
-    glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, color);
-    glTranslated(x, y, z);
-    glutSolidSphere(radius, 30, 30);
-    glPopMatrix();
-  }
-};
-
 // A checkerboard class.  A checkerboard has alternating red and white
 // squares.  The number of squares is set in the constructor.  Each square
 // is 1 x 1.  One corner of the board is (0, 0) and the board stretches out
 // along positive x and positive z.  It rests on the xz plane.  I put a
-// spotlight at (4, 3, 7).
+// spotlight at (5, 6, 7).
 class Checkerboard {
   int displayListId;
   int width;
@@ -129,27 +98,13 @@ class Pendulum {
 public:
 
   double angle; // from down
+  double v;
+  double mass;
+  int updateNumb = 0;
+  int updateGoal = 2;
 
-  Pendulum(GLfloat* c, double len, double x_i, double y_i, double z_i): color(c), length(len), x(x_i), y(y_i), z(z_i) {}
-
-
-  void update() {
-    glPushMatrix();
-    glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, color);
-
-    glTranslated(x, y, z);
-    glRotated(45.0,0.0,0.0,1.0);
-    glScaled(0.05,(length),0.05);
-    // glRotated(10.0,1.0,0.0,0.0);
-
-    glutSolidCube(1.0);
-    glPopMatrix();
-    //
-    glPushMatrix();
-    glTranslated(x, y-(length/2), z); // initial position
-    glutSolidSphere(0.1, 30, 30);
-    glPopMatrix();
-  }
+  Pendulum(GLfloat* c, double len, double x_i, double y_i, double z_i, double v_i):
+           color(c), length(len), x(x_i), y(y_i), z(z_i), v(v_i) {}
 
   void rotate(double theta){
     //
@@ -170,7 +125,6 @@ public:
     // generate the cube
     glutSolidCube(1.0);
     glPopMatrix(); // end arm matrix
-
     //
     // Rotate the ball
     //
@@ -183,13 +137,29 @@ public:
     // rotate at translation point, around the z-vector
     glRotated(theta,0.0,0.0,1.0);
     glTranslated(0.0, -length, 0.0);
-
+    // make the sphere
     glutSolidSphere(0.1, 30, 30);
-
     glPopMatrix(); // end ball matrix
   }
 
+  // this is the kinematic step
+  void update(){
+    if (updateNumb == updateGoal){
+      // damping factor is 0.005
+      double acc = (-0.005 * v) - (9.81 / length) * sin(angle * PI/180.0);
+      v += acc;
+      angle = angle + v;
+      rotate(angle);
+      updateNumb = 0;
+    } else {
+      rotate(angle); // render but don't change
+      updateNumb++;
+    }
+  }
+
 };
+
+
 
 // Global variables: a camera, a checkerboard and some balls.
 Checkerboard checkerboard(9, 9);
@@ -197,17 +167,13 @@ Checkerboard checkerboard(9, 9);
 Camera camera;
 
 // attempt at doing a pole like thing
-Pendulum pendulum(GREEN, 2.0, 4.0, 2.0, 4.0);
-// pendulum.angle = 0.0;
-double temp = 0.0;
+Pendulum pendulum1(RED, 2.0, 4.0, 2.0, 4.0, 20.0);
+Pendulum pendulum2(GREEN, 2.0, 4.0, 2.0, 4.5, 22.0);
+Pendulum pendulum3(BLUE,  2.0, 4.0, 2.0, 5.0, 24.0);
+Pendulum pendulum4(RED, 2.0, 4.0, 2.0, 5.5, 26.0);
+Pendulum pendulum5(GREEN, 2.0, 4.0, 2.0, 6.0, 28.0);
+Pendulum pendulum6(BLUE,  2.0, 4.0, 2.0, 6.5, 30.0);
 
-// pendulum.setAngle(0.0d);
-
-Ball balls[] = {
-  Ball(1, GREEN, 7, 6, 1),
-  Ball(1.5, MAGENTA, 6, 3, 4),
-  Ball(0.4, WHITE, 5, 1, 7)
-};
 
 
 // Application-specific initialization: Set up global lighting parameters
@@ -229,15 +195,18 @@ void display() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glLoadIdentity();
   gluLookAt(camera.getX(), camera.getY(), camera.getZ(),
-            checkerboard.centerx(), 0.0, checkerboard.centerz(),
+            4.0, 1.0, 4.0,
             0.0, 1.0, 0.0);
   checkerboard.draw();
-  // for (int i = 0; i < sizeof balls / sizeof(Ball); i++) {
-  //   balls[i].update();
-  // }
-  // pendulum.update();
-  temp += 0.1;
-  pendulum.rotate(temp);
+  // double temp = pendulum.angle + 0.1;
+  // pendulum.rotate(temp);
+  // pendulum.angle  = temp;
+  pendulum1.update();
+  pendulum2.update();
+  pendulum3.update();
+  pendulum4.update();
+  pendulum5.update();
+  pendulum6.update();
   glFlush();
   glutSwapBuffers();
 }
@@ -254,6 +223,7 @@ void reshape(GLint w, GLint h) {
 // Requests to draw the next frame.
 void timer(int v) {
   glutPostRedisplay();
+  // was 1000/60
   glutTimerFunc(1000/60, timer, v);
 }
 
