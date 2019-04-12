@@ -31,7 +31,7 @@ class Camera {
   double dTheta;     // increment in theta for swinging the camera around
   double dy;         // increment in y for moving the camera up/down
 public:
-  Camera(): theta(-1), y(3), dTheta(0.04), dy(0.2) {}
+  Camera(): theta(-1.5), y(3), dTheta(0.04), dy(0.2) {}
   double getX() {return 6 * cos(theta);}
   double getY() {return y;}
   double getZ() {return 6 * sin(theta);}
@@ -146,7 +146,7 @@ public:
   void update(){
     if (updateNumb == updateGoal){
       // damping factor is 0.005
-      double acc = (-0.005 * v) - (9.81 / length) * sin(angle * PI/180.0);
+      double acc = (-0.0005 * v) - (9.81 / length) * sin(angle * PI/180.0);
       v += acc;
       angle = angle + v;
       rotate(angle);
@@ -245,7 +245,7 @@ int main(int argc, char** argv) {
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
   glutInitWindowPosition(80, 80);
   glutInitWindowSize(800, 600);
-  glutCreateWindow("Cart Pole Simulation");
+  glutCreateWindow("Simple Pendulum Simulation");
   glutDisplayFunc(display);
   glutReshapeFunc(reshape);
   glutSpecialFunc(special);

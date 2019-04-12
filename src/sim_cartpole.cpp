@@ -14,6 +14,7 @@
 #endif
 
 #include <cmath>
+#include <iostream>
 
 
 // Colors
@@ -31,7 +32,7 @@ class Camera {
   double dTheta;     // increment in theta for swinging the camera around
   double dy;         // increment in y for moving the camera up/down
 public:
-  Camera(): theta(-1), y(3), dTheta(0.04), dy(0.2) {}
+  Camera(): theta(-1.5), y(4), dTheta(0.04), dy(0.2) {}
   double getX() {return 6 * cos(theta);}
   double getY() {return y;}
   double getZ() {return 6 * sin(theta);}
@@ -86,7 +87,7 @@ public:
 // starts with the pendulum
 // Started by modifying the ball class
 // remember, the plane is x+ and z+
-class Pendulum {
+class CartPole {
   // double radius;
   GLfloat* color;
   // double maximumHeight;
@@ -97,16 +98,23 @@ class Pendulum {
   // int direction;
 public:
 
+  double m_1;
+  double m_2;
+
+  double x_dot;
+
+  double F;
+
   double angle; // from down
   double v;
   double mass;
   int updateNumb = 0;
   int updateGoal = 2;
 
-  Pendulum(GLfloat* c, double len, double x_i, double y_i, double z_i, double v_i):
-           color(c), length(len), x(x_i), y(y_i), z(z_i), v(v_i) {}
+  CartPole(GLfloat* c, double len, double x_i, double y_i, double z_i, double v_i, double x_d, double theta):
+           color(c), length(len), x(x_i), y(y_i), z(z_i), v(v_i), x_dot(x_d), angle(theta) {}
 
-  void rotate(double theta){
+  void rotatePendulum(double theta){
     //
     // Rotate the arm
     //
@@ -142,17 +150,101 @@ public:
     glPopMatrix(); // end ball matrix
   }
 
+  void updateSystem(double theta, double x_n){
+    //
+    // Rotate and traslate the arm
+    //
+    glPushMatrix(); // begin arm matrix
+    glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, color);
+    // go to main point
+    glTranslated(x, y, z);
+    // for rotation...
+    glTranslated(0.0, length/2, 0.0);
+    // rotate at translation point, around the z-vector
+    glRotated(theta,0.0,0.0,1.0);
+    // now go back...
+    glTranslated(0.0, -length/2, 0.0);
+
+    // TODO translate to the correct location
+
+    // scale rect.p. to correct sizeof
+    glScaled(0.05,(length),0.05);
+    // generate the cube
+    glutSolidCube(1.0);
+    glPopMatrix(); // end arm matrix
+
+
+    //
+    // Rotate and traslate the ball
+    //
+    glPushMatrix(); // begin ball matrix
+    glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, color);
+    glTranslated(x, y-(length/2), z); // initial position
+    // for rotation
+    glTranslated(0.0, length, 0.0);
+    // rotate at translation point, around the z-vector
+    glRotated(theta,0.0,0.0,1.0);
+    glTranslated(0.0, -length, 0.0);
+
+    // TODO translate to the correct location
+
+    // make the sphere
+    glutSolidSphere(0.1, 30, 30);
+    glPopMatrix(); // end ball matrix
+
+
+    //
+    // translate the cart
+    //
+    glPushMatrix();
+    glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, MAGENTA);
+
+    glTranslated(x, y + (length/2), z + 0.275);
+
+    glScaled(1.0,0.5,0.5);
+
+    glutSolidCube(1.0);
+    glPopMatrix();
+
+  }
+
+  // just a plain rendering
+  void render(){
+    updateSystem(0.0,0.0);
+  }
+
   // this is the kinematic step
   void update(){
     if (updateNumb == updateGoal){
-      // damping factor is 0.005
-      double acc = (-0.005 * v) - (9.81 / length) * sin(angle * PI/180.0);
-      v += acc;
-      angle = angle + v;
-      rotate(angle);
+      m_1 = 1200.0;
+      m_2 = 2.0;
+      F = 0.0;
+      double g = 9.81;
+
+      double alpha = ((cos(angle * PI/180.0) * cos(angle * PI/180.0) * m_2 * length) - length * (m_1 + m_2));
+
+      double x_term1 = -1 * g * sin(angle * PI/180.0) * m_2 * length * cos(angle * PI/180.0);
+      double x_term2 = -1 * length * (F + m_2 * length * (v * PI/180.0) * (v * PI/180.0) * sin(angle * PI/180.0));
+      double mu_x = -0.005;
+      double x_acc = (x_term1 + x_term2)/alpha + mu_x * x_dot;
+
+      double t_term1 = -1 * (m_1 + m_2) * (-1 * g * sin(angle * PI/180.0));
+      double t_term2 =  cos(angle * PI/180.0) * (F + m_2 * length * (v * PI/180.0) * (v * PI/180.0) * sin(angle * PI/180.0));
+      double mu_t = -0.005;
+      double t_acc = ((t_term1 + t_term2)/alpha) + mu_t * v;
+
+      v += t_acc;
+      angle += v;
+
+      x_dot += x_acc;
+      x += x_dot;
+
+      updateSystem(angle,x);
+
+      // make the updates
       updateNumb = 0;
     } else {
-      rotate(angle); // render but don't change
+      updateSystem(angle,x);
       updateNumb++;
     }
   }
@@ -167,13 +259,10 @@ Checkerboard checkerboard(9, 9);
 Camera camera;
 
 // attempt at doing a pole like thing
-Pendulum pendulum1(RED, 2.0, 4.0, 2.0, 4.0, 20.0);
-Pendulum pendulum2(GREEN, 2.0, 4.0, 2.0, 4.5, 22.0);
-Pendulum pendulum3(BLUE,  2.0, 4.0, 2.0, 5.0, 24.0);
-Pendulum pendulum4(RED, 2.0, 4.0, 2.0, 5.5, 26.0);
-Pendulum pendulum5(GREEN, 2.0, 4.0, 2.0, 6.0, 28.0);
-Pendulum pendulum6(BLUE,  2.0, 4.0, 2.0, 6.5, 30.0);
 
+CartPole cartpole1(GREEN, 2.0, 4.0, 2.0, 4.0, 0.0, 0.0, 180.0);
+CartPole cartpole2(BLUE, 2.0, 4.0, 2.0, 5.5, 0.0, 0.0, 90.0);
+CartPole cartpole3(RED, 2.0, 4.0, 2.0, 3.0, 2.0, 0.0, 130.0);
 
 
 // Application-specific initialization: Set up global lighting parameters
@@ -198,15 +287,10 @@ void display() {
             4.0, 1.0, 4.0,
             0.0, 1.0, 0.0);
   checkerboard.draw();
-  // double temp = pendulum.angle + 0.1;
-  // pendulum.rotate(temp);
-  // pendulum.angle  = temp;
-  pendulum1.update();
-  pendulum2.update();
-  pendulum3.update();
-  pendulum4.update();
-  pendulum5.update();
-  pendulum6.update();
+  // cartpole.render();
+  cartpole1.update();
+  cartpole2.update();
+  cartpole3.update();
   glFlush();
   glutSwapBuffers();
 }
@@ -244,7 +328,7 @@ int main(int argc, char** argv) {
   glutInit(&argc, argv);
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
   glutInitWindowPosition(80, 80);
-  glutInitWindowSize(800, 600);
+  glutInitWindowSize(1000, 800);
   glutCreateWindow("Cart Pole Simulation");
   glutDisplayFunc(display);
   glutReshapeFunc(reshape);
