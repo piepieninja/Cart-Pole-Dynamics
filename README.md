@@ -8,3 +8,8 @@ Mattew Peter Kelly has a great guide / walkthough of the dynamics of the cart-po
 system: http://www.matthewpeterkelly.com/tutorials/cartPole/index.html
 
 My simulated cartpole dyanimcs can be seen in this video: https://youtu.be/kN71HXND6Nw
+
+## Compilation
+
+
+## Running

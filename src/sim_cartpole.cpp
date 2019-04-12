@@ -59,7 +59,7 @@ public:
   void create() {
     displayListId = glGenLists(1);
     glNewList(displayListId, GL_COMPILE);
-    GLfloat lightPosition[] = {5, 6, 7, 1}; // NOTE change this if needed
+    GLfloat lightPosition[] = {15, 15, 6, 1}; // NOTE change this if needed
     glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
     glBegin(GL_QUADS);
     glNormal3d(0, 1, 0);
@@ -260,9 +260,11 @@ Camera camera;
 
 // attempt at doing a pole like thing
 
-CartPole cartpole1(GREEN, 2.0, 4.0, 2.0, 4.0, 0.0, 0.0, 180.0);
-CartPole cartpole2(BLUE, 2.0, 4.0, 2.0, 5.5, 0.0, 0.0, 90.0);
-CartPole cartpole3(RED, 2.0, 4.0, 2.0, 3.0, 2.0, 0.0, 130.0);
+CartPole cartpole1(GREEN,   2.0, 4.0, 2.0, 4.0, 0.0, 0.0, 180.0);
+CartPole cartpole2(BLUE,    2.0, 4.0, 2.0, 5.5, 0.0, 0.0, 90.0);
+CartPole cartpole3(RED,     2.0, 4.0, 2.0, 3.0, 2.0, 0.0, 130.0);
+CartPole cartpole4(GREEN,   2.0, 4.0, 2.0, 2.2, 2.0, 0.001, 180.0);
+CartPole cartpole5(RED,     2.0, 4.0, 2.0, 1.0, 60.0, 0.0, -45.0);
 
 
 // Application-specific initialization: Set up global lighting parameters
@@ -291,6 +293,8 @@ void display() {
   cartpole1.update();
   cartpole2.update();
   cartpole3.update();
+  cartpole4.update();
+  cartpole5.update();
   glFlush();
   glutSwapBuffers();
 }
