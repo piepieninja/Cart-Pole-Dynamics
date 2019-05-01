@@ -1,9 +1,7 @@
 // http://cs.lmu.edu/~ray/notes/openglexamples/
-
-// This application shows balls bouncing on a checkerboard, with no respect
-// for the laws of Newtonian Mechanics.  There's a little spotlight to make
-// the animation interesting, and arrow keys move the camera for even more
-// fun.
+// this code was taken from the above location and heavily edited
+// the code was previously a ball boucing rendering, this is included
+// locally as balls.cpp
 
 #define PI 3.14159265358979323846
 
@@ -16,6 +14,8 @@
 #include <cmath>
 #include <iostream>
 
+#define EXACT 1
+#define SHOOT 2
 
 // Colors
 GLfloat WHITE[] = {1, 1, 1};
@@ -23,6 +23,9 @@ GLfloat RED[] = {1, 0, 0};
 GLfloat BLUE[] = {0, 0, 1};
 GLfloat GREEN[] = {0, 1, 0};
 GLfloat MAGENTA[] = {1, 0, 1};
+
+// render updater
+bool r_update = true;
 
 // A camera.  It moves horizontally in a circle centered at the origin of
 // radius 10.  It moves vertically straight up and down.
@@ -65,8 +68,7 @@ public:
     glNormal3d(0, 1, 0);
     for (int x = 0; x < width - 1; x++) {
       for (int z = 0; z < depth - 1; z++) {
-        glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE,
-                     (x + z) % 2 == 0 ? RED : WHITE);
+        glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE,(x + z) % 2 == 0 ? RED : WHITE);
         glVertex3d(x, 0, z);
         glVertex3d(x+1, 0, z);
         glVertex3d(x+1, 0, z+1);
@@ -165,7 +167,6 @@ public:
     // now go back...
     glTranslated(0.0, -length/2, 0.0);
 
-    // TODO translate to the correct location
 
     // scale rect.p. to correct sizeof
     glScaled(0.05,(length),0.05);
@@ -213,40 +214,46 @@ public:
     updateSystem(0.0,0.0);
   }
 
+  void step(int i){
+    switch(i){
+      case EXACT:
+        update();
+        break;
+      case SHOOT:
+        std::cout << "NOT YET IMPLEMENTED" << std::endl;
+        break;
+      default:
+        updateSystem(angle,x);
+    }
+  }
+
   // this is the kinematic step
   void update(){
-    if (updateNumb == updateGoal){
-      m_1 = 1200.0;
-      m_2 = 2.0;
-      F = 0.0;
-      double g = 9.81;
+    m_1 = 1200.0;
+    m_2 = 2.0;
+    F = 0.0;
+    double g = 9.81;
+    // double g = 3.5;
 
-      double alpha = ((cos(angle * PI/180.0) * cos(angle * PI/180.0) * m_2 * length) - length * (m_1 + m_2));
+    double alpha = ((cos(angle * PI/180.0) * cos(angle * PI/180.0) * m_2 * length) - length * (m_1 + m_2));
 
-      double x_term1 = -1 * g * sin(angle * PI/180.0) * m_2 * length * cos(angle * PI/180.0);
-      double x_term2 = -1 * length * (F + m_2 * length * (v * PI/180.0) * (v * PI/180.0) * sin(angle * PI/180.0));
-      double mu_x = -0.005;
-      double x_acc = (x_term1 + x_term2)/alpha + mu_x * x_dot;
+    double x_term1 = -1 * g * sin(angle * PI/180.0) * m_2 * length * cos(angle * PI/180.0);
+    double x_term2 = -1 * length * (F + m_2 * length * (v * PI/180.0) * (v * PI/180.0) * sin(angle * PI/180.0));
+    double mu_x = -0.005;
+    double x_acc = (x_term1 + x_term2)/alpha + mu_x * x_dot;
 
-      double t_term1 = -1 * (m_1 + m_2) * (-1 * g * sin(angle * PI/180.0));
-      double t_term2 =  cos(angle * PI/180.0) * (F + m_2 * length * (v * PI/180.0) * (v * PI/180.0) * sin(angle * PI/180.0));
-      double mu_t = -0.005;
-      double t_acc = ((t_term1 + t_term2)/alpha) + mu_t * v;
+    double t_term1 = -1 * (m_1 + m_2) * (-1 * g * sin(angle * PI/180.0));
+    double t_term2 =  cos(angle * PI/180.0) * (F + m_2 * length * (v * PI/180.0) * (v * PI/180.0) * sin(angle * PI/180.0));
+    double mu_t = -0.005;
+    double t_acc = ((t_term1 + t_term2)/alpha) + mu_t * v;
 
-      v += t_acc;
-      angle += v;
+    v += t_acc;
+    angle += v;
 
-      x_dot += x_acc;
-      x += x_dot;
+    x_dot += x_acc;
+    x += x_dot;
 
-      updateSystem(angle,x);
-
-      // make the updates
-      updateNumb = 0;
-    } else {
-      updateSystem(angle,x);
-      updateNumb++;
-    }
+    updateSystem(angle,x);
   }
 
 };
@@ -261,10 +268,10 @@ Camera camera;
 // attempt at doing a pole like thing
 
 CartPole cartpole1(GREEN,   2.0, 4.0, 2.0, 4.0, 0.0, 0.0, 180.0);
-CartPole cartpole2(BLUE,    2.0, 4.0, 2.0, 5.5, 0.0, 0.0, 90.0);
-CartPole cartpole3(RED,     2.0, 4.0, 2.0, 3.0, 2.0, 0.0, 130.0);
-CartPole cartpole4(GREEN,   2.0, 4.0, 2.0, 2.2, 2.0, 0.001, 180.0);
-CartPole cartpole5(RED,     2.0, 4.0, 2.0, 1.0, 60.0, 0.0, -45.0);
+// CartPole cartpole2(BLUE,    2.0, 4.0, 2.0, 5.5, 0.0, 0.0, 90.0);
+// CartPole cartpole3(RED,     2.0, 4.0, 2.0, 3.0, 2.0, 0.0, 130.0);
+// CartPole cartpole4(GREEN,   2.0, 4.0, 2.0, 2.2, 2.0, 0.001, 180.0);
+// CartPole cartpole5(RED,     2.0, 4.0, 2.0, 1.0, 60.0, 0.0, -45.0);
 
 
 // Application-specific initialization: Set up global lighting parameters
@@ -289,12 +296,18 @@ void display() {
             4.0, 1.0, 4.0,
             0.0, 1.0, 0.0);
   checkerboard.draw();
-  // cartpole.render();
-  cartpole1.update();
-  cartpole2.update();
-  cartpole3.update();
-  cartpole4.update();
-  cartpole5.update();
+
+  if (r_update){
+    cartpole1.step(EXACT);
+
+    r_update = false;
+  } else {
+    cartpole1.step(0);
+
+    r_update = true;
+  }
+
+
   glFlush();
   glutSwapBuffers();
 }
