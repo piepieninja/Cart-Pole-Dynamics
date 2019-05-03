@@ -4,3 +4,4 @@
 src/*~
 src/#*#
 src/.DS_Store
+bin/*.x
