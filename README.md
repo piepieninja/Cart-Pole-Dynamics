@@ -1,6 +1,6 @@
 # Cart-Pole-Dynamics
-Cart Pole Control Examples. The motivation here is to eventially attempt to write
-a controller. 
+Cart Pole Dynamics Examples. The motivation here is to eventially attempt to write
+a controller.
 
 
 ## The Cart Pole
