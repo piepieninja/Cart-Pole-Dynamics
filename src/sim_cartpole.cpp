@@ -14,8 +14,9 @@
 #include <cmath>
 #include <iostream>
 
-#define EXACT 1
-#define SHOOT 2
+#define EULER 1
+#define MOD_EULER 2
+#define RK4 3
 
 // Colors
 GLfloat WHITE[] = {1, 1, 1};
@@ -112,6 +113,8 @@ public:
   double mass;
   int updateNumb = 0;
   int updateGoal = 2;
+  // this is the step size
+  // double h = 0.5;
 
   CartPole(GLfloat* c, double len, double x_i, double y_i, double z_i, double v_i, double x_d, double theta):
            color(c), length(len), x(x_i), y(y_i), z(z_i), v(v_i), x_dot(x_d), angle(theta) {}
@@ -216,42 +219,85 @@ public:
 
   void step(int i){
     switch(i){
-      case EXACT:
-        update();
+      case EULER:
+        euler();
         break;
-      case SHOOT:
-        std::cout << "NOT YET IMPLEMENTED" << std::endl;
+      case MOD_EULER:
+        modified_euler();
         break;
       default:
         updateSystem(angle,x);
     }
   }
 
-  // this is the kinematic step
-  void update(){
+  double x_func(double a, double h){
     m_1 = 1200.0;
     m_2 = 2.0;
     F = 0.0;
     double g = 9.81;
-    // double g = 3.5;
 
-    double alpha = ((cos(angle * PI/180.0) * cos(angle * PI/180.0) * m_2 * length) - length * (m_1 + m_2));
+    double alpha = ((cos(h*a * PI/180.0) * cos(h*a * PI/180.0) * m_2 * length) - length * (m_1 + m_2));
 
-    double x_term1 = -1 * g * sin(angle * PI/180.0) * m_2 * length * cos(angle * PI/180.0);
-    double x_term2 = -1 * length * (F + m_2 * length * (v * PI/180.0) * (v * PI/180.0) * sin(angle * PI/180.0));
+    double x_term1 = -1 * g * sin(h*a * PI/180.0) * m_2 * length * cos(h*a * PI/180.0);
+    double x_term2 = -1 * length * (F + m_2 * length * (h*v * PI/180.0) * (h*v * PI/180.0) * sin(h*a * PI/180.0));
     double mu_x = -0.005;
-    double x_acc = (x_term1 + x_term2)/alpha + mu_x * x_dot;
+    double x_acc = (x_term1 + x_term2)/alpha + mu_x * h*x_dot;
 
-    double t_term1 = -1 * (m_1 + m_2) * (-1 * g * sin(angle * PI/180.0));
-    double t_term2 =  cos(angle * PI/180.0) * (F + m_2 * length * (v * PI/180.0) * (v * PI/180.0) * sin(angle * PI/180.0));
+    return x_acc;
+  }
+
+  double t_func(double a, double h){
+    m_1 = 1200.0;
+    m_2 = 2.0;
+    F = 0.0;
+    double g = 9.81;
+
+    double alpha = ((cos(h*a * PI/180.0) * cos(h*a * PI/180.0) * m_2 * length) - length * (m_1 + m_2));
+
+    double t_term1 = -1 * (m_1 + m_2) * (-1 * g * sin(h*a * PI/180.0));
+    double t_term2 =  cos(h*a * PI/180.0) * (F + m_2 * length * (h*v * PI/180.0) * (h*v * PI/180.0) * sin(h*a * PI/180.0));
     double mu_t = -0.005;
-    double t_acc = ((t_term1 + t_term2)/alpha) + mu_t * v;
+    double t_acc = ((t_term1 + t_term2)/alpha) + mu_t * h*v;
 
-    v += t_acc;
-    angle += v;
+    return t_acc;
+  }
 
-    x_dot += x_acc;
-    x += x_dot;
+  // this is the kinematic step
+  void euler(){
+    double h = 0.5;
+
+    double x_acc = x_func(angle, h);
+    double t_acc = t_func(angle, h);
+
+    v += h*t_acc;
+    angle += h*v;
+
+    x_dot += h*x_acc;
+    x += h*x_dot;
+
+    updateSystem(angle,x);
+  }
+
+  void modified_euler(){
+    double h = 0.5;
+
+    double back_x_acc = x_func(angle + h, h);
+    double back_t_acc = t_func(angle + h, h);
+
+    double back_v = v + h*back_t_acc;
+    double back_x_dot = x_dot + h*back_x_acc;
+
+    double frnt_x_acc = x_func(angle, h);
+    double frnt_t_acc = t_func(angle, h);
+
+    double frnt_v = v + h*frnt_t_acc;
+    double frnt_x_dot = x_dot + h*frnt_x_acc;
+
+    v += (h/2.0) * ( frnt_t_acc + back_t_acc );
+    angle += (h/2.0) * ( frnt_v + back_v );
+
+    x_dot += (h/2.0) * ( frnt_x_acc + back_x_acc );
+    x += (h/2.0) * ( frnt_x_dot + back_x_dot );
 
     updateSystem(angle,x);
   }
@@ -266,8 +312,10 @@ Checkerboard checkerboard(9, 9);
 Camera camera;
 
 // attempt at doing a pole like thing
-
-CartPole cartpole1(GREEN,   2.0, 4.0, 2.0, 4.0, 0.0, 0.0, 180.0);
+// GLfloat* c, double len, double x_i, double y_i, double z_i, double v_i, double x_d, double theta
+// color,   length,   x initial,  y inital,   z intial,   intial velocity,  initial position,   intitial angle
+CartPole cartpole1(GREEN,   2.0, 3.0, 2.0, 2.0, 0.0, 0.0, 179.0);
+CartPole cartpole2(RED,     2.0, 3.0, 2.0, 3.0, 0.0, 0.0, 179.0);
 // CartPole cartpole2(BLUE,    2.0, 4.0, 2.0, 5.5, 0.0, 0.0, 90.0);
 // CartPole cartpole3(RED,     2.0, 4.0, 2.0, 3.0, 2.0, 0.0, 130.0);
 // CartPole cartpole4(GREEN,   2.0, 4.0, 2.0, 2.2, 2.0, 0.001, 180.0);
@@ -292,21 +340,12 @@ void init() {
 void display() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glLoadIdentity();
-  gluLookAt(camera.getX(), camera.getY(), camera.getZ(),
-            4.0, 1.0, 4.0,
-            0.0, 1.0, 0.0);
+  gluLookAt(camera.getX(), camera.getY(), camera.getZ(), 4.0, 1.0, 4.0, 0.0, 1.0, 0.0);
   checkerboard.draw();
 
-  if (r_update){
-    cartpole1.step(EXACT);
-
-    r_update = false;
-  } else {
-    cartpole1.step(0);
-
-    r_update = true;
-  }
-
+  // step foward with the carts
+  cartpole1.step(EULER);
+  cartpole2.step(MOD_EULER);
 
   glFlush();
   glutSwapBuffers();
@@ -325,7 +364,7 @@ void reshape(GLint w, GLint h) {
 void timer(int v) {
   glutPostRedisplay();
   // was 1000/60
-  glutTimerFunc(1000/60, timer, v);
+  glutTimerFunc(1000/30, timer, v);
 }
 
 // Moves the camera according to the key pressed, then ask to refresh the
