@@ -326,10 +326,10 @@ public:
     double K1_x3 = angle + (h * v);
     double K1_x4 = v     + (h * Gx(angle,v));
     // next
-    double K2_x1 = K1_x1 + (h * K1_x2);
-    double K2_x2 = K1_x2 + (h * Fx(K1_x3,K1_x4));
-    double K2_x3 = K1_x3 + (h * K1_x4);
-    double K2_x4 = K1_x4 + (h * Gx(K1_x3,K1_x4));
+    double K2_x1 = (h * K1_x2);
+    double K2_x2 = (h * Fx(K1_x3,K1_x4));
+    double K2_x3 = (h * K1_x4);
+    double K2_x4 = (h * Gx(K1_x3,K1_x4));
 
     // average
     x     = (K1_x1 + K2_x1)/2.0;
