@@ -30,6 +30,7 @@ GLfloat MAGENTA[] = {1, 0, 1};
 bool r_update = true;
 int count = 0;
 double h = 0.9; // the global stepsize
+bool logging = true;
 
 // A camera.  It moves horizontally in a circle centered at the origin of
 // radius 10.  It moves vertically straight up and down.
@@ -223,15 +224,15 @@ public:
     switch(i){
       case EULER:
         euler();
-        // logState("euler.csv");
+        if (logging){ logState("data/euler.csv"); };
         break;
       case MOD_EULER:
         modified_euler();
-        // logState("modified_euler.csv");
+        if (logging){ logState("data/modified_euler.csv"); };
         break;
       case RK4:
         RK_4();
-        // logState("modified_euler.csv");
+        if (logging){ logState("data/RK4.csv"); };
         break;
       default:
         updateSystem(angle,x);
@@ -368,10 +369,10 @@ public:
 
     // PARTIAL STEP
     // K1 part
-    double K1_part_x1 = x     + ((h/2.0) * x_dot);
-    double K1_part_x2 = x_dot + ((h/2.0) * Fx(x_dot, angle,v));
-    double K1_part_x3 = angle + ((h/2.0) * v);
-    double K1_part_x4 = v     + ((h/2.0) * Gx(angle,v));
+    double K1_part_x1 = K1_x1 + ((h/2.0) * x_dot);
+    double K1_part_x2 = K1_x2 + ((h/2.0) * Fx(x_dot, angle,v));
+    double K1_part_x3 = K1_x3 + ((h/2.0) * v);
+    double K1_part_x4 = K1_x4 + ((h/2.0) * Gx(angle,v));
 
     // K2
     double K2_x1 = K1_x1 + (h * K1_part_x2/2.0);
@@ -471,7 +472,7 @@ void reshape(GLint w, GLint h) {
 void timer(int v) {
   glutPostRedisplay();
   // was 1000/60
-  glutTimerFunc(1000/60, timer, v);
+  glutTimerFunc(1000/100, timer, v);
 }
 
 // Moves the camera according to the key pressed, then ask to refresh the
