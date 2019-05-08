@@ -12,4 +12,5 @@ mac:
 clean:
 	rm -f bin/*.x
 	rm -f src/*~
+	rm -f *.csv
 	rm -f *~

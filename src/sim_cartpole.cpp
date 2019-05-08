@@ -13,6 +13,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <fstream>
 
 #define EULER 1
 #define MOD_EULER 2
@@ -27,6 +28,8 @@ GLfloat MAGENTA[] = {1, 0, 1};
 
 // render updater
 bool r_update = true;
+int count = 0;
+double h = 0.9; // the global stepsize
 
 // A camera.  It moves horizontally in a circle centered at the origin of
 // radius 10.  It moves vertically straight up and down.
@@ -221,13 +224,22 @@ public:
     switch(i){
       case EULER:
         euler();
+        logState("euler.csv");
         break;
       case MOD_EULER:
         modified_euler();
+        logState("modified_euler.csv");
         break;
       default:
         updateSystem(angle,x);
     }
+  }
+
+  void logState(std::string str){
+    std::ofstream myfile;
+    myfile.open(str,std::ios_base::app);
+    myfile << count << "," << angle << "," << x << "\n";// << v << "," << x_dot << ",";
+    myfile.close();
   }
 
   double x_func(double a, double h){
@@ -264,33 +276,33 @@ public:
 
   // this is the kinematic step
   void euler(){
-    double h = 0.5;
+    // double h = 2.5;
 
     double x_acc = x_func(angle, h);
     double t_acc = t_func(angle, h);
 
-    v += h*t_acc;
+    v += t_acc;
     angle += h*v;
 
-    x_dot += h*x_acc;
+    x_dot += x_acc;
     x += h*x_dot;
 
     updateSystem(angle,x);
   }
 
   void modified_euler(){
-    double h = 0.5;
+    // double h = 2.5;
 
     double back_x_acc = x_func(angle + h, h);
     double back_t_acc = t_func(angle + h, h);
 
-    double back_v = v + h*back_t_acc;
+    double back_v = v + back_t_acc;
     double back_x_dot = x_dot + h*back_x_acc;
 
     double frnt_x_acc = x_func(angle, h);
     double frnt_t_acc = t_func(angle, h);
 
-    double frnt_v = v + h*frnt_t_acc;
+    double frnt_v = v + frnt_t_acc;
     double frnt_x_dot = x_dot + h*frnt_x_acc;
 
     v += (h/2.0) * ( frnt_t_acc + back_t_acc );
@@ -314,8 +326,8 @@ Camera camera;
 // attempt at doing a pole like thing
 // GLfloat* c, double len, double x_i, double y_i, double z_i, double v_i, double x_d, double theta
 // color,   length,   x initial,  y inital,   z intial,   intial velocity,  initial position,   intitial angle
-CartPole cartpole1(GREEN,   2.0, 3.0, 2.0, 2.0, 0.0, 0.0, 179.0);
-CartPole cartpole2(RED,     2.0, 3.0, 2.0, 3.0, 0.0, 0.0, 179.0);
+CartPole cartpole1(GREEN,   2.0, 3.0, 2.0, 2.0, 10.0, 0.0, 179.0);
+CartPole cartpole2(RED,     2.0, 3.0, 2.0, 3.0, 10.0, 0.0, 179.0);
 // CartPole cartpole2(BLUE,    2.0, 4.0, 2.0, 5.5, 0.0, 0.0, 90.0);
 // CartPole cartpole3(RED,     2.0, 4.0, 2.0, 3.0, 2.0, 0.0, 130.0);
 // CartPole cartpole4(GREEN,   2.0, 4.0, 2.0, 2.2, 2.0, 0.001, 180.0);
@@ -347,6 +359,8 @@ void display() {
   cartpole1.step(EULER);
   cartpole2.step(MOD_EULER);
 
+  count++;
+
   glFlush();
   glutSwapBuffers();
 }
@@ -364,7 +378,7 @@ void reshape(GLint w, GLint h) {
 void timer(int v) {
   glutPostRedisplay();
   // was 1000/60
-  glutTimerFunc(1000/30, timer, v);
+  glutTimerFunc(1000/100, timer, v);
 }
 
 // Moves the camera according to the key pressed, then ask to refresh the
