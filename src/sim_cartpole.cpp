@@ -30,7 +30,7 @@ GLfloat MAGENTA[] = {1, 0, 1};
 bool r_update = true;
 int count = 0;
 double h = 0.9; // the global stepsize
-bool logging = true;
+bool logging = false;
 
 // A camera.  It moves horizontally in a circle centered at the origin of
 // radius 10.  It moves vertically straight up and down.
