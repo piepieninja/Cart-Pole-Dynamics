@@ -110,14 +110,13 @@ public:
   double x_dot;
 
   double F;
+  double g;
 
   double angle; // from down
   double v;
   double mass;
   int updateNumb = 0;
   int updateGoal = 2;
-  // this is the step size
-  // double h = 0.5;
 
   CartPole(GLfloat* c, double len, double x_i, double y_i, double z_i, double v_i, double x_d, double theta):
            color(c), length(len), x(x_i), y(y_i), z(z_i), v(v_i), x_dot(x_d), angle(theta) {}
@@ -224,11 +223,11 @@ public:
     switch(i){
       case EULER:
         euler();
-        logState("euler.csv");
+        // logState("euler.csv");
         break;
       case MOD_EULER:
         modified_euler();
-        logState("modified_euler.csv");
+        // logState("modified_euler.csv");
         break;
       default:
         updateSystem(angle,x);
@@ -242,75 +241,104 @@ public:
     myfile.close();
   }
 
-  double x_func(double a, double h){
+  double Fx(double x_3, double x_4){
+    // general terms
     m_1 = 1200.0;
     m_2 = 2.0;
     F = 0.0;
-    double g = 9.81;
+    g = 9.81;
+    double mu = -0.05; // dampening factor
 
-    double alpha = ((cos(h*a * PI/180.0) * cos(h*a * PI/180.0) * m_2 * length) - length * (m_1 + m_2));
+    // broken into parts to help make it readable / a bit more clear
+    double alpha = ((cos(x_3 * PI/180.0) * cos(x_3 * PI/180.0) * m_2 * length) - length * (m_1 + m_2));
+    double term1 = -1 * g * sin(x_3 * PI/180.0) * m_2 * length * cos(x_3 * PI/180.0);
+    double term2 = -1 * length * (F + m_2 * length * (x_4 * PI/180.0) * (x_4 * PI/180.0) * sin(x_3 * PI/180.0));
+    double result = ((term1 + term2)/alpha) + mu * x_dot; // TODO add friction here
 
-    double x_term1 = -1 * g * sin(h*a * PI/180.0) * m_2 * length * cos(h*a * PI/180.0);
-    double x_term2 = -1 * length * (F + m_2 * length * (h*v * PI/180.0) * (h*v * PI/180.0) * sin(h*a * PI/180.0));
-    double mu_x = -0.005;
-    double x_acc = (x_term1 + x_term2)/alpha + mu_x * h*x_dot;
-
-    return x_acc;
+    return result;
   }
 
-  double t_func(double a, double h){
+  double Gx(double x_3, double x_4){
+    // general terms
     m_1 = 1200.0;
     m_2 = 2.0;
     F = 0.0;
-    double g = 9.81;
+    g = 9.81;
+    double mu = -0.05; // dampening factor
 
-    double alpha = ((cos(h*a * PI/180.0) * cos(h*a * PI/180.0) * m_2 * length) - length * (m_1 + m_2));
+    // broken into parts to help make it readable / a bit more clear
+    double alpha = ((cos(x_3 * PI/180.0) * cos(x_3 * PI/180.0) * m_2 * length) - length * (m_1 + m_2));
+    double term1 = -1 * (m_1 + m_2) * (-1 * g * sin(x_3 * PI/180.0));
+    double term2 = cos(x_3 * PI/180.0) * (F + m_2 * length * (x_4 * PI/180.0) * (x_4 * PI/180.0) * sin(x_3 * PI/180.0));
+    double result = ((term1 + term2)/alpha) + mu * x_4; // This removes energy from the system
 
-    double t_term1 = -1 * (m_1 + m_2) * (-1 * g * sin(h*a * PI/180.0));
-    double t_term2 =  cos(h*a * PI/180.0) * (F + m_2 * length * (h*v * PI/180.0) * (h*v * PI/180.0) * sin(h*a * PI/180.0));
-    double mu_t = -0.005;
-    double t_acc = ((t_term1 + t_term2)/alpha) + mu_t * h*v;
-
-    return t_acc;
+    return result;
   }
 
   // this is the kinematic step
   void euler(){
-    // double h = 2.5;
+    // this is just the step size
+    double h = 0.5;
 
-    double x_acc = x_func(angle, h);
-    double t_acc = t_func(angle, h);
+    std::cout << "Euler, step: " << h*count << std::endl;
 
-    v += t_acc;
-    angle += h*v;
+    // The form of the X vector, with the
+    // variables being used in this class, is:
+    //      |   x   |   | x_1 |          |     x_2      |
+    //  X = | x_dot | = | x_2 | ... X' = | Fx(x_3, x_4) |
+    //      | angle |   | x_3 |          |     x_4      |
+    //      |   v   |   | x_4 |          | Gx(x_3, x_4) |
 
-    x_dot += x_acc;
-    x += h*x_dot;
+    // Simple Euler Method
+    double x1 = x     + (h * x_dot);
+    double x2 = x_dot + (h * Fx(angle,v));
+    double x3 = angle + (h * v);
+    double x4 = v     + (h * Gx(angle,v));
 
+    // single euler method here
+    x     = x1;
+    x_dot = x2;
+    angle = x3;
+    v     = x4;
+
+    std::cout << "X = [ " << x << "  " << x_dot << "  " << angle << "  " << v << "]" << std::endl;
+    // this is for rendering the update
     updateSystem(angle,x);
   }
 
   void modified_euler(){
-    // double h = 2.5;
+    // this is just the step size
+    double h = 0.5;
 
-    double back_x_acc = x_func(angle + h, h);
-    double back_t_acc = t_func(angle + h, h);
+    std::cout << "Improved Euler, step: " << h*count << std::endl;
 
-    double back_v = v + back_t_acc;
-    double back_x_dot = x_dot + h*back_x_acc;
+    // The form of the X vector, with the
+    // variables being used in this class, is:
+    //      |   x   |   | x_1 |          |     x_2      |
+    //  X = | x_dot | = | x_2 | ... X' = | Fx(x_3, x_4) |
+    //      | angle |   | x_3 |          |     x_4      |
+    //      |   v   |   | x_4 |          | Gx(x_3, x_4) |
 
-    double frnt_x_acc = x_func(angle, h);
-    double frnt_t_acc = t_func(angle, h);
+    // Improved Euler Method
+    // curr
+    double K1_x1 = x     + (h * x_dot);
+    double K1_x2 = x_dot + (h * Fx(angle,v));
+    double K1_x3 = angle + (h * v);
+    double K1_x4 = v     + (h * Gx(angle,v));
+    // next
+    double K2_x1 = K1_x1 + (h * K1_x2);
+    double K2_x2 = K1_x2 + (h * Fx(K1_x3,K1_x4));
+    double K2_x3 = K1_x3 + (h * K1_x4);
+    double K2_x4 = K1_x4 + (h * Gx(K1_x3,K1_x4));
 
-    double frnt_v = v + frnt_t_acc;
-    double frnt_x_dot = x_dot + h*frnt_x_acc;
+    // average
+    x     = (K1_x1 + K2_x1)/2.0;
+    x_dot = (K1_x2 + K2_x2)/2.0;
+    angle = (K1_x3 + K2_x3)/2.0;
+    v     = (K1_x4 + K2_x4)/2.0;
 
-    v += (h/2.0) * ( frnt_t_acc + back_t_acc );
-    angle += (h/2.0) * ( frnt_v + back_v );
-
-    x_dot += (h/2.0) * ( frnt_x_acc + back_x_acc );
-    x += (h/2.0) * ( frnt_x_dot + back_x_dot );
-
+    std::cout << "X = [ " << x << "  " << x_dot << "  " << angle << "  " << v << "]" << std::endl;
+    // this is for rendering the update
     updateSystem(angle,x);
   }
 
@@ -325,13 +353,9 @@ Camera camera;
 
 // attempt at doing a pole like thing
 // GLfloat* c, double len, double x_i, double y_i, double z_i, double v_i, double x_d, double theta
-// color,   length,   x initial,  y inital,   z intial,   intial velocity,  initial position,   intitial angle
-CartPole cartpole1(GREEN,   2.0, 3.0, 2.0, 2.0, 10.0, 0.0, 179.0);
-CartPole cartpole2(RED,     2.0, 3.0, 2.0, 3.0, 10.0, 0.0, 179.0);
-// CartPole cartpole2(BLUE,    2.0, 4.0, 2.0, 5.5, 0.0, 0.0, 90.0);
-// CartPole cartpole3(RED,     2.0, 4.0, 2.0, 3.0, 2.0, 0.0, 130.0);
-// CartPole cartpole4(GREEN,   2.0, 4.0, 2.0, 2.2, 2.0, 0.001, 180.0);
-// CartPole cartpole5(RED,     2.0, 4.0, 2.0, 1.0, 60.0, 0.0, -45.0);
+// color,   length,   x init,  y init,   z init, intial rot vel,  initial x vel,   intitial angle
+CartPole cartpole1(GREEN,   2.0, 3.0, 2.0, 2.0, 0.0, 0.0, 90.0);
+CartPole cartpole2(RED,     2.0, 3.0, 2.0, 3.0, 0.0, 0.0, 90.0);
 
 
 // Application-specific initialization: Set up global lighting parameters
@@ -378,7 +402,7 @@ void reshape(GLint w, GLint h) {
 void timer(int v) {
   glutPostRedisplay();
   // was 1000/60
-  glutTimerFunc(1000/100, timer, v);
+  glutTimerFunc(1000/60, timer, v);
 }
 
 // Moves the camera according to the key pressed, then ask to refresh the
