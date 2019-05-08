@@ -229,6 +229,10 @@ public:
         modified_euler();
         // logState("modified_euler.csv");
         break;
+      case RK4:
+        RK_4();
+        // logState("modified_euler.csv");
+        break;
       default:
         updateSystem(angle,x);
     }
@@ -241,7 +245,7 @@ public:
     myfile.close();
   }
 
-  double Fx(double x_3, double x_4){
+  double Fx(double x_2, double x_3, double x_4){
     // general terms
     m_1 = 1200.0;
     m_2 = 2.0;
@@ -253,7 +257,7 @@ public:
     double alpha = ((cos(x_3 * PI/180.0) * cos(x_3 * PI/180.0) * m_2 * length) - length * (m_1 + m_2));
     double term1 = -1 * g * sin(x_3 * PI/180.0) * m_2 * length * cos(x_3 * PI/180.0);
     double term2 = -1 * length * (F + m_2 * length * (x_4 * PI/180.0) * (x_4 * PI/180.0) * sin(x_3 * PI/180.0));
-    double result = ((term1 + term2)/alpha) + mu * x_dot; // TODO add friction here
+    double result = ((term1 + term2)/alpha) + mu * x_2; // TODO add friction here
 
     return result;
   }
@@ -291,7 +295,7 @@ public:
 
     // Simple Euler Method
     double x1 = x     + (h * x_dot);
-    double x2 = x_dot + (h * Fx(angle,v));
+    double x2 = x_dot + (h * Fx(x_dot, angle,v));
     double x3 = angle + (h * v);
     double x4 = v     + (h * Gx(angle,v));
 
@@ -322,20 +326,83 @@ public:
     // Improved Euler Method
     // curr
     double K1_x1 = x     + (h * x_dot);
-    double K1_x2 = x_dot + (h * Fx(angle,v));
+    double K1_x2 = x_dot + (h * Fx(x_dot, angle,v));
     double K1_x3 = angle + (h * v);
     double K1_x4 = v     + (h * Gx(angle,v));
     // next
-    double K2_x1 = (h * K1_x2);
-    double K2_x2 = (h * Fx(K1_x3,K1_x4));
-    double K2_x3 = (h * K1_x4);
-    double K2_x4 = (h * Gx(K1_x3,K1_x4));
+    double K2_x1 = K1_x1 + (h * K1_x2);
+    double K2_x2 = K1_x2 + (h * Fx(K1_x2,K1_x3,K1_x4));
+    double K2_x3 = K1_x3 + (h * K1_x4);
+    double K2_x4 = K1_x4 + (h * Gx(K1_x3,K1_x4));
 
     // average
     x     = (K1_x1 + K2_x1)/2.0;
     x_dot = (K1_x2 + K2_x2)/2.0;
     angle = (K1_x3 + K2_x3)/2.0;
     v     = (K1_x4 + K2_x4)/2.0;
+
+    std::cout << "X = [ " << x << "  " << x_dot << "  " << angle << "  " << v << "]" << std::endl;
+    // this is for rendering the update
+    updateSystem(angle,x);
+  }
+
+  void RK_4(){
+    // this is just the step size
+    double h = 0.5;
+
+    std::cout << "RK4, step: " << h*count << std::endl;
+
+    // The form of the X vector, with the
+    // variables being used in this class, is:
+    //      |   x   |   | x_1 |          |     x_2      |
+    //  X = | x_dot | = | x_2 | ... X' = | Fx(x_3, x_4) |
+    //      | angle |   | x_3 |          |     x_4      |
+    //      |   v   |   | x_4 |          | Gx(x_3, x_4) |
+
+    // Rung-Kutta 4
+    // K1
+    double K1_x1 = x     + (h * x_dot);
+    double K1_x2 = x_dot + (h * Fx(x_dot, angle,v));
+    double K1_x3 = angle + (h * v);
+    double K1_x4 = v     + (h * Gx(angle,v));
+
+    // PARTIAL STEP
+    // K1 part
+    double K1_part_x1 = x     + ((h/2.0) * x_dot);
+    double K1_part_x2 = x_dot + ((h/2.0) * Fx(x_dot, angle,v));
+    double K1_part_x3 = angle + ((h/2.0) * v);
+    double K1_part_x4 = v     + ((h/2.0) * Gx(angle,v));
+
+    // K2
+    double K2_x1 = K1_x1 + (h * K1_part_x2/2.0);
+    double K2_x2 = K1_x2 + (h * Fx(K1_part_x2/2.0,K1_part_x3/2.0,K1_part_x4/2.0));
+    double K2_x3 = K1_x3 + (h * K1_part_x4/2.0);
+    double K2_x4 = K1_x4 + (h * Gx(K1_part_x3/2.0,K1_part_x4/2.0));
+
+    // partial step
+    // K2 part
+    double K2_part_x1 = K1_x1 + ((h/2.0) * K1_x2);
+    double K2_part_x2 = K1_x2 + ((h/2.0) * Fx(K1_x2,K1_x3,K1_x4));
+    double K2_part_x3 = K1_x3 + ((h/2.0) * K1_x4);
+    double K2_part_x4 = K1_x4 + ((h/2.0) * Gx(K1_x3,K1_x4));
+
+    // K3
+    double K3_x1 = K2_x1 + (h * K2_part_x2/2.0);
+    double K3_x2 = K2_x2 + (h * Fx(K2_part_x2/2.0,K2_part_x3/2.0,K2_part_x4/2.0));
+    double K3_x3 = K2_x3 + (h * K2_part_x4/2.0);
+    double K3_x4 = K2_x4 + (h * Gx(K2_part_x3/2.0,K2_part_x4/2.0));
+
+    // K4
+    double K4_x1 = K3_x1 + (h * K3_x2);
+    double K4_x2 = K3_x2 + (h * Fx(K3_x2,K3_x3,K3_x4));
+    double K4_x3 = K3_x3 + (h * K3_x4);
+    double K4_x4 = K3_x4 + (h * Gx(K3_x3,K3_x4));
+
+    // average
+    x     = (K1_x1 + 2*K2_x1 + 2*K3_x1 + K4_x1)/6.0;
+    x_dot = (K1_x2 + 2*K2_x2 + 2*K3_x2 + K4_x2)/6.0;
+    angle = (K1_x3 + 2*K2_x3 + 2*K3_x3 + K4_x3)/6.0;
+    v     = (K1_x4 + 2*K2_x4 + 2*K3_x4 + K4_x4)/6.0;
 
     std::cout << "X = [ " << x << "  " << x_dot << "  " << angle << "  " << v << "]" << std::endl;
     // this is for rendering the update
@@ -356,6 +423,7 @@ Camera camera;
 // color,   length,   x init,  y init,   z init, intial rot vel,  initial x vel,   intitial angle
 CartPole cartpole1(GREEN,   2.0, 3.0, 2.0, 2.0, 0.0, 0.0, 90.0);
 CartPole cartpole2(RED,     2.0, 3.0, 2.0, 3.0, 0.0, 0.0, 90.0);
+CartPole cartpole3(BLUE,    2.0, 3.0, 2.0, 4.0, 0.0, 0.0, 90.0);
 
 
 // Application-specific initialization: Set up global lighting parameters
@@ -382,6 +450,7 @@ void display() {
   // step foward with the carts
   cartpole1.step(EULER);
   cartpole2.step(MOD_EULER);
+  cartpole3.step(RK4);
 
   count++;
 
