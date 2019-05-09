@@ -11,6 +11,7 @@ system: http://www.matthewpeterkelly.com/tutorials/cartPole/index.html
 My simulated cartpole dyanimcs can be seen in this video: https://youtu.be/kN71HXND6Nw
 
 ## Compilation
-
+`$ make mac`
 
 ## Running
+the binaries are in the `bin` folder
