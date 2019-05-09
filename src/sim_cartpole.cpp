@@ -472,7 +472,7 @@ void reshape(GLint w, GLint h) {
 void timer(int v) {
   glutPostRedisplay();
   // was 1000/60
-  glutTimerFunc(1000/60, timer, v);
+  glutTimerFunc(1000/100, timer, v);
 }
 
 // Moves the camera according to the key pressed, then ask to refresh the

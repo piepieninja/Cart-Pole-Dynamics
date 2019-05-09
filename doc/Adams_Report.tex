@@ -51,8 +51,12 @@ papers of Mattew Peter Kelly \cite{mattkelly}, though additional materials were 
 \end{figure}
 
 The Cart Pole system consists of a Cart, which is free to roll in the x directions, and a
-pendulum, which is free to rotate around the center of the cart. The thing that makes the
-Cart pole tricky is the interplay between these two phenomenon.
+pendulum which is free to rotate around the center of the cart. The pole and the cart
+transfer energy between one another, with the total energy of the system being constant.
+Only friction and damping due to wind resistance would remove energy from the system.
+Once should also consider that the Cart and the Pole are exerting forces of varying magnitudes
+on one another over time. This is was allows the system to be described as a set of
+second order equations. A video of the simulation can be found at the link \url{https://youtu.be/kN71HXND6Nw}
 
 \newpage
 
@@ -94,7 +98,7 @@ the balance on the pole, and the balance around the pivot):
 \end{equation}
 
 In the end, these equations give us the following second order linear system to
-discribe the cart pole \cite{mattkelly} \cite{underactuated}:
+describe the cart pole \cite{mattkelly} \cite{underactuated}:
 
 \begin{equation} \label{eq:4}
 \begin{bmatrix}
@@ -112,9 +116,9 @@ F + m_2 l \dot{\theta}^2 \sin \theta
 \end{bmatrix}
 \end{equation}
 
-For the purpose of this project I transform this system back into two fuctions.
+For the purpose of this project I transform this system back into two functions.
 This system can be viewed as $A x = b$, so simply $x = A^{-1} b$ will give us
-a solution. Then, we can solve for the second derivatives. Doing this yeilds the following
+a solution. Then, we can solve for the second derivatives. Doing this yields the following
 two equations:
 
 \begin{equation} \label{eq:5}
@@ -156,7 +160,7 @@ X(0) =
 \end{bmatrix}
 \]
 
-Then, we note that we can discribe the state vector $X$'s derivative vector $\dot{X}$,
+Then, we note that we can describe the state vector $X$'s derivative vector $\dot{X}$,
 which is what we can use to solve an IVP with the system. Note that this is where we want
 to jump back to the separated equations 5 and 6 in part 2. These equations will not take the forms:
 
@@ -233,6 +237,12 @@ file.
 
 \subsection{OpenGL and Rendering}
 
+This simulation uses OpenGL and the OpenGL Utilities. These libraries are used to
+draw primitive poles, boxes, and spheres. Various matrix transformations, which can
+occur with OpenGL provided functions, are used to shift the simulated objects across
+the render area. Additionally, the setup and outline of the c++ code used is heavily
+based on the OpenGLUT examples from Ray Toal's class \cite{glut}.
+
 \begin{figure}[!ht]
     \centering
     \begin{subfigure}[b]{0.3\textwidth}
@@ -254,33 +264,37 @@ file.
         \caption{The test pendulums.}
         \label{fig:mouse}
     \end{subfigure}
-    \caption{Screenshots of simulated systems}\label{fig:animals}
+    \caption{Screenshots of simulated systems. The green pole is using Euler's method,
+    the red pole is using the Modified Euler's method, and the blue pole is using RK4.}\label{fig:animals}
 \end{figure}
 
+The readme at the root of this project should provide adequate instructions on how
+to run the program. When the program starts you can use the arrow keys to rotate
+your view and see more of the simulation.
 
 \section{Results \& Future Work}
 
 \subsection{Simulation Results}
 
+\begin{figure}[!ht]
+ \centering
+ \includegraphics[width=0.5\textwidth]{../data/Figure_1}
+ \caption{Shows the displacement in the $x$ direction (y axis) of the cart
+ over time $t$ (x axis). Green is Euler's method, Red is the Modified Euler's method, and Blue is RK4.}
+ \label{fig:yeet}
+\end{figure}
+
 Overall the results are quite nice. The standard Euler method works well and transfers
 energy and momentum throughout the system as I would expect. However, it was difficult to
 judge if results were correct, as the cart pole is a chaotic system. The changes in types
-of numerical methods would make the chatoic nature of the system apearent after only a
+of numerical methods would make the chaotic nature of the system apparent after only a
 few iterations, and that makes it hard to directly compare methods. Additionally,
 the lack of a clear closed loop solution to the cart pole makes it difficult to compare
 each individual result to a ground truth.
 
 \begin{figure}[!ht]
  \centering
- \includegraphics[width=0.7\textwidth]{../data/Figure_1}
- \caption{Shows the displacement in the $x$ direction (y axis) of the cart
- over time $t$ (x axis). Green is Euler's method, Red is the Modified Euler's method, and Blue is RK4.}
- \label{fig:yeet}
-\end{figure}
-
-\begin{figure}[!ht]
- \centering
- \includegraphics[width=0.7\textwidth]{../data/Figure_2}
+ \includegraphics[width=0.5\textwidth]{../data/Figure_2}
  \caption{Shows the angle of the pole of the cart in radians (y axis) over
  time $t$ (x axis). Green is Euler's method, Red is the Modified Euler's method, and Blue is RK4.}
  \label{fig:yub}
@@ -288,13 +302,39 @@ each individual result to a ground truth.
 
 Many simulations, or models used for Trajectory Optimization, do not account for a dampening
 factor or friction on the cart system. I attempted to model these, which is clear in Figures
-4 and 5 as the amplitude clearly decreases over time. I do not think I adiquately modeled
+4 and 5 as the amplitude clearly decreases over time. I do not think I adequately modeled
 these dampening and friction forces, but as I mentioned above it is hard to tell due to the
 chaotic nature of the Cart Pole. I would at least expect the rate of dampening to be similar
 in each method, which is not something I see and leads me to believe there is some error associated
 to that.
 
+It is likely that I have not modeled the nuances of friction in the system correctly, and this could
+be what is causing the divergent behavior with the amplitudes between methods. I assumed that I could model
+both friction and the damping factor as a simple $- \mu \ddot{x}$ and $- \mu \ddot{\theta}$, where $mu$
+is some constant coefficient. However, this is likely untrue, as friction is tied to the normal force. For
+example, it is commonly know that $F_f \leq \mu F_n$ where $\mu$ is the coefficient of friction, $F_n$ is the
+normal force, and $F_f$ is the true force of friction. This implies that the Cart Pole does not experience a
+constant force due to friction (which is what I am currently modeling), as the normal force generated by
+the pole will vary by its angle. This means
+that there is a separate set of component forces that are not being modeled, as the swing-up of
+the pole would cause the normal force $F_n$ to vary with the state of the pole. This could explain the strange
+dampening of the modeled system and would need to be addressed to make the system more accurate. What could
+complicate this further is that the cart pole cannot shake, as the motion of the cart is constrained
+to the x axis. This is unrealistic in many ways. If the pole were to swing up fast enough and have a large
+enough mass, it is realistic to expect the cart to shake an move within the plane of the pole - not
+just the x axis.
+
 \subsection{Future Work}
+
+In the future I plan to derive the correct friction related equations as well as
+attempt to control the cart pole system with the framework I have built. Once I can
+formulate the system as an IVP, I will attempt to formulate it as a BVP. This is so
+that I can perform Trajectory Optimization so that I can control the cart pole in
+an upright state. The reason a BVP style solution is desired is because it can specify
+a starting condition and an ending condition. It's possible that the Trajectory
+Optimization could be combined with a simple controller.
+
+\newpage
 
 \bibliographystyle{IEEEtran}
 \bibliography{sources}
